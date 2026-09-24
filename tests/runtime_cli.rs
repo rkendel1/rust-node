@@ -6,10 +6,22 @@ use std::{
 
 #[test]
 fn runtime_executes_javascript_files_from_the_cli() {
-    let script_path = unique_temp_script_path();
+    let project_dir = unique_temp_directory();
+    let script_path = project_dir.join("main.js");
 
-    fs::write(&script_path, "console.log('hello from runtime');")
-        .expect("script should be written");
+    fs::write(project_dir.join("answer.js"), "module.exports = 42;")
+        .expect("module should be written");
+    fs::write(
+        &script_path,
+        r#"
+        const answer = require("./answer");
+        console.log(answer);
+        setTimeout(() => {
+          console.log("done");
+        }, 0);
+        "#,
+    )
+    .expect("script should be written");
 
     let output = Command::new(env!("CARGO_BIN_EXE_runtime"))
         .arg(&script_path)
@@ -21,9 +33,9 @@ fn runtime_executes_javascript_files_from_the_cli() {
         "stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(String::from_utf8_lossy(&output.stdout).contains("hello from runtime"));
-
-    let _ = fs::remove_file(script_path);
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(stdout.contains("42"));
+    assert!(stdout.contains("done"));
 }
 
 #[test]
@@ -36,11 +48,13 @@ fn runtime_requires_a_script_path() {
     assert!(String::from_utf8_lossy(&output.stderr).contains("usage:"));
 }
 
-fn unique_temp_script_path() -> std::path::PathBuf {
+fn unique_temp_directory() -> std::path::PathBuf {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
         .expect("system clock should be valid")
         .as_nanos();
 
-    std::env::temp_dir().join(format!("rust-node-cli-{nanos}.js"))
+    let path = std::env::temp_dir().join(format!("rust-node-cli-{nanos}"));
+    fs::create_dir_all(&path).expect("temp directory should be created");
+    path
 }

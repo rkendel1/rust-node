@@ -19,5 +19,6 @@ fn run() -> Result<(), RuntimeError> {
         return Err(RuntimeError::UnexpectedArguments { program });
     }
 
-    Runtime::new().execute_file(Path::new(&script_path))
+    let mut runtime = Runtime::new();
+    runtime.execute_file(Path::new(&script_path))
 }

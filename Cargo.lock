@@ -1135,6 +1135,7 @@ name = "rust-node"
 version = "0.1.0"
 dependencies = [
  "boa_engine",
+ "boa_gc",
  "boa_runtime",
 ]
 
